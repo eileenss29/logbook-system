@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+      body { margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; background: linear-gradient(135deg, #d4f3ef 0%, #e8eaf6 50%, #fce4ec 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+      .card { background: white; width: 92%; max-width: 450px; padding: 30px 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; margin: 20px auto; }
+      .logo-text { color: #2c3e50; font-weight: 600; font-size: 1.4rem; margin-bottom: 5px; }
+      .subtitle { color: #7f8c8d; font-size: 0.95rem; margin-bottom: 15px; line-height: 1.4; }
+      .current-date-display { background-color: #f0f4f8; color: #2c3e50; display: inline-block; padding: 8px 25px; border-radius: 50px; font-size: 1rem; font-weight: 600; margin-bottom: 20px; border: 1px solid #d1d9e6; }
+      .tab-container { display: flex; margin-bottom: 20px; background: #eee; border-radius: 10px; padding: 5px; }
+      .tab { flex: 1; padding: 10px; cursor: pointer; text-align: center; border-radius: 8px; transition: 0.3s; font-weight: 600; font-size: 0.85rem; }
+      .active-tab { background: #4CAF50; color: white; }
+      .input-group { text-align: left; margin-bottom: 15px; }
+      label { display: block; font-size: 0.9rem; color: #34495e; margin-bottom: 5px; font-weight: 600; }
+      input, select, textarea { width: 100%; padding: 12px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: #fcfcfc; font-family: 'Sarabun', sans-serif; font-size: 1rem; box-sizing: border-box; }
+      .time-row { display: flex; gap: 10px; align-items: center; }
+      .time-row div { flex: 1; }
+      .checkbox-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; background: #f9f9f9; padding: 10px; border-radius: 8px; text-align: left; }
+      .checkbox-group input { width: auto; }
+      .btn-submit { width: 100%; padding: 15px; background-color: #4CAF50; color: white; border: none; border-radius: 12px; font-size: 1.2rem; font-weight: 600; cursor: pointer; margin-top: 15px; transition: 0.3s; }
+      
+      .btn-view { 
+        width: 100%; 
+        padding: 12px; 
+        background: linear-gradient(135deg, #fff5f8 0%, #f0f4ff 100%); 
+        color: #5a67d8; 
+        border: 2px dashed #cbd5e0; 
+        border-radius: 15px; 
+        font-size: 1rem; 
+        font-weight: 600; 
+        cursor: pointer; 
+        margin-top: 15px; 
+        text-decoration: none; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-sizing: border-box; 
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      }
+      .btn-view:hover { 
+        background: linear-gradient(135deg, #f0f4ff 0%, #fff5f8 100%); 
+        border-color: #a3b1ff;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+      }
+      .quote-box { font-size: 0.85rem; color: #ff5722; font-style: italic; margin-top: 10px; font-weight: 600; line-height: 1.3; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="logo-text">ฝ่ายไวรัสก่อมะเร็ง</div>
+      <div class="subtitle">
+        บันทึกการใช้งาน:<br><strong>{{ deviceName }}</strong>
+        <div id="randomQuote" class="quote-box"></div>
+      </div>
+      <div class="current-date-display" id="dateDisplay">วันที่ปัจจุบัน: </div>
+
+      {% if deviceName == "ตู้ปราศจากเชื้อ (Biosafety Cabinet) ESCO" %}
+        <div class="tab-container">
+          <div class="tab active-tab" id="tabUsage" onclick="switchForm('usage')">บันทึกการใช้งาน</div>
+          <div class="tab" id="tabMaint" onclick="switchForm('maintenance')">การบำรุงรักษา</div>
+        </div>
+      {% endif %}
+
+      <form id="logForm">
+        <input type="hidden" name="deviceName" value="{{ deviceName }}">
+        <input type="hidden" name="formType" id="formType" value="usage">
+
+        <div id="maintFields" style="display:none;">
+            <div class="checkbox-group"><input type="checkbox" name="check1"> <label>ตรวจสอบการทำงานระบบดูดอากาศ</label></div>
+            <div class="checkbox-group"><input type="checkbox" name="check2"> <label>ทำความสะอาดหลอด UV</label></div>
+            <div class="checkbox-group"><input type="checkbox" name="check3"> <label>ทำความสะอาดพื้นผิว Drain pan</label></div>
+        </div>
+
+        <div id="usageFields">
+          {% if deviceName == "ตู้ปราศจากเชื้อ (Biosafety Cabinet) ESCO" %}
+            <div class="input-group">
+              <label>สภาพการใช้งาน</label>
+              <select name="status" id="statusSelect" onchange="document.getElementById('otherStatus').style.display = this.value === 'อื่นๆ' ? 'block' : 'none'">
+                <option value="ปกติ">ปกติ</option>
+                <option value="อื่นๆ">อื่นๆ (ไม่ปกติ)</option>
+              </select>
+              <input type="text" name="statusDetail" id="otherStatus" style="display:none; margin-top:10px;" placeholder="ระบุอาการไม่ปกติ">
+            </div>
+          {% endif %}
+
+          <div class="input-group">
+            <label>เลือกช่วงเวลาที่ใช้งาน (เริ่ม - เสร็จ)</label>
+            <div class="time-row">
+              <div><select name="startTime" id="startTime" required></select></div>
+              <div style="flex: 0; font-weight: bold;">-</div>
+              <div><select name="endTime" id="endTime" required></select></div>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label>งานที่ทำ</label>
+            <input type="text" name="job" value="HPV DNA Test" placeholder="ระบุชื่องานหรือโครงการ" required 
+       oninvalid="this.setCustomValidity('ลืมกรอกช่องนี้ค่ะ 😊')" oninput="this.setCustomValidity('')">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>ลงชื่อผู้ใช้งาน</label>
+          <input type="text" name="name" placeholder="ระบุชื่อ" required id="userNameField" 
+       oninvalid="this.setCustomValidity('ลืมกรอกช่องนี้ค่ะ 😊')" oninput="this.setCustomValidity('')">
+        </div>
+
+        <div id="commonFields">
+          {% if deviceName != "ตู้ปราศจากเชื้อ (Biosafety Cabinet) ESCO" %}
+            <div class="input-group">
+              <label>เบอร์ติดต่อ (5 หรือ 10 หลัก)</label>
+              <input type="tel" name="tel" value="98033" placeholder="ระบุเบอร์ติดต่อภายในหรือส่วนตัว" pattern="^(\d{5}|\d{10})$" required 
+       oninvalid="this.setCustomValidity('ลืมกรอกช่องนี้ค่ะ 😊')" oninput="this.setCustomValidity('')">
+            </div>
+            <div class="input-group">
+              <label>หมายเหตุ</label>
+              <textarea name="note" rows="2" placeholder="-"></textarea>
+            </div>
+          {% endif %}
+        </div>
+
+        <button type="submit" id="submitBtn" class="btn-submit">บันทึกข้อมูล</button>
+        
+        <a href="/history?device={{ deviceName | urlencode }}" class="btn-view">
+          <span>📑</span> ดูรายการบันทึกย้อนหลัง
+        </a>
+	<a href="/menu" class="btn-view" style="margin-top: 10px;">
+          <span>📋</span> รายการเครื่องมือทั้งหมด
+        </a>
+      </form>
+      <div class="footer-text" style="font-size: 0.75rem; color: #95a5a6; margin-top: 25px;">สถาบันวิจัยวิทยาศาสตร์สาธารณสุข<br>กรมวิทยาศาสตร์การแพทย์</div>
+    </div>
+
+    <script>
+      const quotes = [
+        "🔮 ดวงวันนี้: ราหูอมจันทร์ยังไม่น่ากลัวเท่าออดิทอมยิ้มตอนเห็น Log Book ว่างเปล่า",
+        "✨ สีมงคลวันนี้คือสีใส.. เหมือนผล Lab ที่หายไปเพราะลืมกด Save",
+        "🙏 พระท่านบอกว่า: การลงชื่อใน Log Book วันนี้ จะช่วยตัดกรรมเรื่องโดนตามงานในวันหน้า",
+        "🧬 ดวงชะตาฟ้าลิขิตมาให้คุณเป็นคนคุมเครื่องนี้.. ส่วนคนคุมคุณอีกทีคือนู่น.. ออดิทจ้าาา",
+        "💰 บันทึกข้อมูลวันนี้ แถมฟรีแต้มบุญสะสม.. ครบ 100 แต้มแลกข้าวฟรี (ที่บ้านตัวเอง)",
+        "❤️ ความรักต้องการความชัดเจน.. การใช้เครื่องมือก็เช่นกัน บันทึกให้มันชัดๆ!",
+        "🌟 ราศีที่ช่วงนี้งานจะรุ่ง คือราศีที่ลง Log Book ครบทุกช่อง",
+        "🃏 ไพ่ใบที่ 1 บอกว่า: วันนี้ตู้ BSC จะประทานพรให้ผลออกมาเป๊ะ",
+        "🌈 บันทึกข้อมูลวันนี้ แถมฟรีความภูมิใจในตัวเอง 100%",
+        "💄 ความสวยของผล Lab อยู่ที่มือเรา แต่ความสวยของเราอยู่ที่การบันทึกข้อมูล"
+      ];
+
+      function switchForm(type) {
+        document.getElementById('formType').value = type;
+        document.getElementById('usageFields').style.display = type === 'usage' ? 'block' : 'none';
+        document.getElementById('maintFields').style.display = type === 'maintenance' ? 'block' : 'none';
+        document.getElementById('tabUsage').classList.toggle('active-tab', type === 'usage');
+        document.getElementById('tabMaint').classList.toggle('active-tab', type === 'maintenance');
+      }
+
+      function initForm() {
+        const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        const now = new Date();
+        document.getElementById('dateDisplay').innerText = now.getDate() + " " + months[now.getMonth()] + " พ.ศ. " + (now.getFullYear() + 543);
+        const randomIdx = Math.floor(Math.random() * quotes.length);
+        document.getElementById('randomQuote').innerText = quotes[randomIdx];
+        const start = document.getElementById('startTime');
+        const end = document.getElementById('endTime');
+        start.innerHTML = ""; end.innerHTML = "";
+        for (let h = 7; h <= 20; h++) {
+          for (let m of ['00', '30']) {
+            if (h === 7 && m === '00') continue;
+            let t = h.toString().padStart(2, '0') + ":" + m;
+            start.options.add(new Option(t, t));
+            end.options.add(new Option(t, t));
+          }
+        }
+        start.value = "08:30"; end.value = "16:30";
+      }
+
+      window.onload = initForm;
+
+      document.getElementById('logForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        btn.innerText = 'กำลังส่งข้อมูล...';
+        btn.disabled = true;
+
+        // เปลี่ยนจาก google.script.run เป็น fetch เพื่อส่งข้อมูลหา Python (app.py)
+        fetch('/process_form', {
+          method: 'POST',
+          body: new FormData(this)
+        })
+        .then(response => response.text())
+        .then(res => {
+          if (res.includes("Error")) {
+            throw new Error(res);
+          }
+          Swal.fire({
+            title: 'บันทึกสำเร็จ!',
+            text: 'เก่งมากกก ทำดีทำถึง ทำต่อไป 😍',
+            icon: 'success',
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#4CAF50',
+            allowOutsideClick: false
+          }).then((result) => {
+            if (result.isConfirmed) {
+              document.getElementById('logForm').reset();
+              btn.innerText = 'บันทึกข้อมูล';
+              btn.disabled = false;
+              initForm();
+              if(document.getElementById('otherStatus')) document.getElementById('otherStatus').style.display = 'none';
+            }
+          });
+        })
+        .catch(err => {
+          Swal.fire({ title: 'ข้อผิดพลาด!', text: err.message, icon: 'error' });
+          btn.innerText = 'บันทึกข้อมูล';
+          btn.disabled = false;
+        });
+      });
+    </script>
+  </body>
+</html>

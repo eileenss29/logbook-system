@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    /* ปรับโทนสีพื้นหลัง (Green Pastel & Soft Grey) */
+    body { 
+      font-family: 'Sarabun', sans-serif; 
+      background: linear-gradient(135deg, #d4f3ef 0%, #e8eaf6 50%, #fce4ec 100%); 
+      margin: 0; 
+      padding: 10px; 
+      min-height: 100vh; 
+      padding-bottom: 120px; 
+    }
+    
+    .container { max-width: 1000px; margin: 0 auto; background: white; border-radius: 25px; padding: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); }
+    .header { text-align: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px dashed #4CAF50; }
+    .device-title { color: #2c3e50; font-weight: 600; font-size: 1.1rem; }
+    
+    .tab-container { display: none; margin-bottom: 15px; background: #f0f4f8; border-radius: 15px; padding: 5px; gap: 5px; }
+    .tab { flex: 1; padding: 12px; cursor: pointer; text-align: center; border-radius: 12px; transition: 0.3s; font-weight: 600; font-size: 0.85rem; border: none; background: transparent; color: #555; }
+    .active-tab { background: #4CAF50; color: white; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2); }
+
+    .table-container { overflow-x: auto; border-radius: 15px; border: 1px solid #d1d9e6; }
+    table { width: 100%; border-collapse: collapse; background: white; font-size: 0.85rem; min-width: 800px; }
+    th { background-color: #f0f4f8; color: #2c3e50; font-weight: 600; padding: 12px 8px; text-align: center; border-bottom: 2px solid #d1d9e6; white-space: nowrap; }
+    td { padding: 10px 8px; border-bottom: 1px solid #f0f4f8; color: #4a5568; vertical-align: middle; text-align: center; } 
+    
+    .text-left { text-align: left !important; }
+    tr:nth-child(even) { background-color: #f9fbfd; }
+    tr:hover { background-color: #f0f4f8; }
+    
+    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .status-normal { background: #e8f5e9; color: #2e7d32; }
+    .status-error { background: #ffebee; color: #c62828; }
+    
+    .btn-back-container { 
+      position: fixed; 
+      bottom: 35px; 
+      left: 50%; 
+      transform: translateX(-50%); 
+      z-index: 999;
+      width: auto; 
+    }
+    
+    .btn-back { 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 14px 32px; 
+      background: #4caf50;
+      color: white; 
+      text-decoration: none; 
+      border-radius: 20px; 
+      font-weight: 600; 
+      font-size: 1rem; 
+      border: none;
+      cursor: pointer; 
+      transition: all 0.3s ease; 
+      box-shadow: 
+        0 4px 6px rgba(0,0,0,0.1), 
+        0 10px 20px rgba(76, 175, 80, 0.3),
+        inset 0 1px 1px rgba(255, 255, 255, 0.3); 
+      white-space: nowrap;
+    }
+    
+    .btn-back:hover { 
+      background: #55bb59;
+      transform: translateY(-5px); 
+      box-shadow: 
+        0 15px 30px rgba(76, 175, 80, 0.4),
+        0 5px 10px rgba(0,0,0,0.1);
+    }
+
+    #loading { text-align: center; margin-top: 40px; color: #4CAF50; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div style="font-size: 0.7rem; color: #7f8c8d; letter-spacing: 1px;">📋 LOGBOOK HISTORY</div>
+      <div class="device-title">{{ deviceName }}</div>
+    </div>
+
+    <div id="historyTabs" class="tab-container">
+      <button id="btnUsage" class="tab active-tab" onclick="switchMode('usage')">📄 ประวัติการใช้งาน</button>
+      <button id="btnMaint" class="tab" onclick="switchMode('maint')">🔧 การบำรุงรักษา</button>
+    </div>
+
+    <div id="loading">✨ กำลังโหลดข้อมูล...</div>
+    
+    <div class="table-container">
+      <table id="historyTable" style="display:none;">
+        <thead>
+          <tr id="headerRow"></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="btn-back-container">
+     <button onclick="goBack()" class="btn-back">⬅️ กลับไปหน้าบันทึกข้อมูล 😍</button>
+  </div>
+
+  <script>
+    let rawHistory = [];
+    let isSpecialMode = false;
+
+    // เปลี่ยนจาก google.script.run เป็น fetch เพื่อดึงข้อมูลจาก Python (app.py)
+    window.onload = function() {
+      fetch(`/get_history_data?deviceName=${encodeURIComponent("{{ deviceName }}")}`)
+        .then(response => response.json())
+        .then(res => {
+          initHistory(res);
+        })
+        .catch(err => {
+          console.error('Error:', err);
+          document.getElementById('loading').innerText = "เกิดข้อผิดพลาดในการโหลดข้อมูล";
+        });
+    };
+
+    function initHistory(res) {
+      document.getElementById('loading').style.display = 'none';
+      if (!res || !res.values || res.values.length === 0) {
+        document.getElementById('loading').innerText = "ไม่พบข้อมูลบันทึก";
+        document.getElementById('loading').style.display = 'block';
+        return;
+      }
+      rawHistory = res.values;
+      isSpecialMode = res.isSpecial;
+      if(isSpecialMode) { document.getElementById('historyTabs').style.display = 'flex'; }
+      switchMode('usage');
+    }
+
+    function formatCheck(val) {
+      if (val === "/" || val === "✅") return "✅";
+      if (!val || val === "") return "-";
+      return val;
+    }
+
+    function switchMode(mode) {
+      const headerRow = document.getElementById('headerRow');
+      const tbody = document.getElementById('tableBody');
+      const table = document.getElementById('historyTable');
+      tbody.innerHTML = '';
+      table.style.display = 'table';
+
+      if (isSpecialMode) {
+        document.getElementById('btnUsage').classList.toggle('active-tab', mode === 'usage');
+        document.getElementById('btnMaint').classList.toggle('active-tab', mode === 'maint');
+        
+        if (mode === 'usage') {
+          headerRow.innerHTML = `<th>วันที่</th><th>สถานะ</th><th>งานที่ทำ</th><th>เวลา</th><th>ชื่อผู้ใช้งาน</th>`;
+          rawHistory.forEach(row => {
+            if(!row[0]) return;
+            const isError = row[1] && row[1].includes('ไม่ปกติ');
+            tbody.innerHTML += `<tr>
+              <td class="text-center">${row[0]}</td>
+              <td class="text-center"><span class="status-badge ${isError ? 'status-error' : 'status-normal'}">${row[1]}</span></td>
+              <td class="text-left">${row[2]}</td>
+              <td class="text-center">${row[3]}</td>
+              <td class="text-center">${row[4]}</td> 
+            </tr>`;
+          });
+        } else {
+          headerRow.innerHTML = `<th>วันที่</th><th>ตรวจสอบการทำงาน<br>ระบบดูดอากาศ</th><th>ทำความสะอาด<br>หลอด UV</th><th>ทำความสะอาดพื้นผิว<br>Drain pan</th><th>ผู้รับผิดชอบ</th>`;
+          rawHistory.forEach(row => {
+            if(!row[5]) return; 
+            tbody.innerHTML += `<tr>
+              <td class="text-center">${row[5]}</td>
+              <td class="text-center" style="font-size: 1.2rem;">${formatCheck(row[6])}</td>
+              <td class="text-center" style="font-size: 1.2rem;">${formatCheck(row[7])}</td>
+              <td class="text-center" style="font-size: 1.2rem;">${formatCheck(row[8])}</td>
+              <td class="text-center">${row[9]}</td> 
+            </tr>`;
+          });
+        }
+      } else {
+        headerRow.innerHTML = `<th>วันที่</th><th>เวลา</th><th>งานที่ทำ</th><th>ลงชื่อผู้ใช้งาน</th><th>เบอร์โทร</th><th>หมายเหตุ</th>`;
+        rawHistory.forEach(row => {
+          tbody.innerHTML += `<tr>
+            <td class="text-center">${row[0]}</td>
+            <td class="text-center">${row[1]}</td>
+            <td class="text-left">${row[2]}</td>
+            <td class="text-center">${row[3]}</td> <td class="text-center">${row[4]}</td> <td class="text-left">${row[5] || '-'}</td>
+          </tr>`;
+        });
+      }
+    }
+
+    // ปรับปรุงฟังก์ชัน goBack ให้กลับไปยังหน้าแรกของแอป Python
+    function goBack() {
+      const url = "/?device=" + encodeURIComponent("{{ deviceName }}");
+      window.location.href = url;
+    }
+  </script>
+</body>
+</html>
